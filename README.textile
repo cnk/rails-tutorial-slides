@@ -1,0 +1,1 @@
+These are the slides we used to teach "Rails Tutorial":http://ruby.railstutorial.org
