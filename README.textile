@@ -1,6 +1,3 @@
-These are the slides we used to teach "Rails
-Tutorial":http://ruby.railstutorial.org
+These are the slides we used to teach Michael Hartl's "Rails Tutorial":http://ruby.railstutorial.org
 
-These slides use "W3's Slidy":http://www.w3.org/Talks/Tools/Slidy2/ to
-create an accessible html slide deck. If you want to edit these
-slides, you can safely ignore everything except the index.html file.
+These slides use "W3's Slidy":http://www.w3.org/Talks/Tools/Slidy2/ to create an accessible html slide deck. If you want to edit these slides, you can safely ignore everything except the index.html file.
