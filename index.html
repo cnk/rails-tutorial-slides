@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-US">
+  <head>
+    <meta name="generator" content="HTML Tidy for Linux/x86 (vers 1st November 2003), see www.w3.org" />
+    <title>Rails Tutorial Using Rails 3.0.10</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="copyright" content="Copyright &#169; 2011 Cynthia Kiser (cnk@ugcs.caltech.edu)" />
+    <meta name="duration" content="20" />
+    <link rel="stylesheet" href="http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" type="text/css" />
+    <script src="http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js" charset="utf-8" type="text/javascript"></script>
+  </head>
+  <body>
+    <div class="slide">
+      <h1>Welcome</h1>
+
+      <p>
+        Welcome to the LA Ruby Study Group Rails Tutorial Workshop.
+      </p>
+
+      <p>
+        We are going to work through the Rails Tutorial book. You will
+        have already worked through the install steps last
+        weekend. Tonight we will be starting right in with Chapter 3 -
+        Mostly Static Pages.
+      </p>
+      
+      <p>
+        We will be skipping the testing portions of the book. In the
+        long run, testing saves time you would spend debugging or
+        doing <i>ad hoc</i> testing - but in the short run it takes
+        time.
+      </p>
+
+    </div>
+
+    <div class="slide">
+      <h1>Our Sample App</h1>
+
+      <pre>
+  cd _wherever_you_want_to_work_
+  rails new sample_app
+
+  app/   - this is where your application lives
+     controllers/
+     helpers/
+     models/
+     views/
+  config/  - application configuration, e.g. database.yml
+  db/migrations/ - database-agnostic schema definition
+  log/     - log files. Look here for debugging information
+  public/  - images, stylesheets, javascript
+  Gemfile  - what gems should we load for this application? 
+  .gitignore -  Lists of files we don't want version controlled
+      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Start your server</h1>
+
+      <pre>
+  cd sample_app
+  bundle install
+  rails server	
+  => Booting WEBrick
+  => Rails 3.0.9 application starting on http://0.0.0.0:3000
+  => Call with -d to detach
+  => Ctrl-C to shutdown server
+      </pre>
+
+      <p>
+        In your web browser, got to <a href="http://localhost:3000">http://localhost:3000</a>
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Using Git</h1>
+
+      <p>
+        Version control is a good development practice. It is also the
+        tool we are going to use to transfer the code you have on your
+        local machine to Heroku - a web host where the rest of the
+        world can see your handiwork. 
+      </p>
+
+      <pre>
+  Initial (one time) setup: 
+  git config --global user.name "Your Name"
+  git config --global user.name "Your Name"
+
+  git init
+  # Possibly edit the .gitignore file
+  git add . 
+  git commit -m "Bare rails project"
+      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Deploy</h1>
+
+      <p>
+        Everyone signed up for a free Heroku account, right? <a
+        href="https://api.heroku.com/signup">https://api.heroku.com/signup</a> 
+      </p>
+
+      <pre>
+  gem list heroku
+
+  heroku keys:add
+  heroku create
+  git push heroku master
+
+  heroku open
+      </pre>
+    </div>
+
+
+  </body>
+</html>
