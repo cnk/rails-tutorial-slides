@@ -52,8 +52,7 @@
   log/     - log files. Look here for debugging information
   public/  - images, stylesheets, javascript
   Gemfile  - what gems should we load for this application? 
-  .gitignore -  Lists of files we don't want version controlled
-      </pre>
+  .gitignore -  Lists of files we don't want version controlled      </pre>
     </div>
 
     <div class="slide">
@@ -66,8 +65,7 @@
   => Booting WEBrick
   => Rails 3.0.9 application starting on http://0.0.0.0:3000
   => Call with -d to detach
-  => Ctrl-C to shutdown server
-      </pre>
+  => Ctrl-C to shutdown server      </pre>
 
       <p>
         In your web browser, got to <a href="http://localhost:3000">http://localhost:3000</a>
@@ -92,8 +90,7 @@
   git init
   # Possibly edit the .gitignore file
   git add . 
-  git commit -m "Bare rails project"
-      </pre>
+  git commit -m "Bare rails project"      </pre>
     </div>
 
     <div class="slide">
@@ -111,10 +108,85 @@
   heroku create
   git push heroku master
 
-  heroku open
-      </pre>
+  heroku open      </pre>
+      <p>
+        Don't worry about the fact the "About your application's
+        environment" link doesn't work on Heroku. That's normal. We'll
+        be replacing that page with something more interesting soon.
+      </p>
     </div>
 
+    <div class="slide">
+      <h1>Static pages</h1>
+
+      <p>
+        Any page or file placed within the public/ directory will be
+        served directly from that location without passing through the
+        rails routing system. For example, let's create a file
+        public/hello.html
+     </p>
+
+     <p>
+       That's nice. But it has all the disadvantages of a static web
+       page. For example, it must contain all of the styling
+       information for the page. And if that changes, it needs to be
+       changed on every page. That violates one of Rails' guiding
+       principles: <b>Don't Repeat Yourself</b>
+     </p>
+
+      <p>
+        Rails can offer you a better option - using the Rails
+        templating system to apply a common layout. 
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Not Really Static Pages</h1>
+
+      <pre>
+  rails generate controller Pages home contact      
+      create  app/controllers/pages_controller.rb
+       route  get "pages/contact"
+       route  get "pages/home"
+      invoke  erb
+      create    app/views/pages
+      create    app/views/pages/home.html.erb
+      create    app/views/pages/contact.html.erb      </pre>
+
+      <p>
+        This will have generated a controller named Pages and added 2
+        actions to it: home and contact. It has also added routes and pages.
+	Let's look at them.
+      </p>
+    </div>
+
+
+    <div class="slide">
+      <h1>Common Layout</h1>
+
+      <p>
+        Let's take advantage of the site layout file. Let's add a
+        title to each page.
+      </p>
+
+      <pre>
+  class PagesController < ApplicationController
+    def home
+      @title = "Home"
+    end
+  end      </pre>
+
+      <p>
+        Views: html + ruby. The text between &lt;% and %&gt; is
+        evaluated as ruby. If there is an equal sign, the result of
+        the ruby is placed in the html:  &lt;%= 2+2 %&gt; yields
+        4. The value of instance variables can be placed in a view.
+      </p>
+
+      <pre>
+  &lt;%= @title %&gt;     </pre>
+
+    </div>
 
   </body>
 </html>
