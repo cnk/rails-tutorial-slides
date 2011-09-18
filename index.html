@@ -388,45 +388,164 @@ end  </pre>
     </div>
 
     <div class="slide">
-      <h1></h1>
+      <h1>User Modeling</h1>
 
       <p>
+        Rails now supports several different methods of storing data -
+        but the default is still ActiveRecord - an ORM (object
+        relational mapper) that can store data in any one of several
+        types of databases. 
+      </p>
+
+      <pre>
+  rails generate model User name:string email:string  </pre>
+
+      <p>
+        Notice models are singular, controllers (and table names) are
+        plural. 
+      </p>
+
+      <p>
+        Look at the migration file. Data definition in bite-sized
+        steps - and in ruby so they are database agnositic (as long as
+        you don't need a specialized feature of your database). Notice
+        <code>t.timestamps</code> - that adds special columns to your
+        table: updated_at and created_at. Callbacks will updated those
+        automatically when a record is created or updated.
+      </p>
+
+      <pre>
+  class CreateUsers < ActiveRecord::Migration
+    def self.up
+      create_table :users do |t|
+	t.string :name
+	t.string :email
+
+	t.timestamps
+      end
+    end
+
+    def self.down
+      drop_table :users
+    end
+  end  </pre>
+
+      <pre>
+  bundle exec rake db:migrate   </pre>
+
+      <p>
+        Let's look at the table using either <a
+        href="http://sqlitebrowser.sourceforge.net/">SQLite Database
+        Browser</a> or the Firefox <a
+        href="https://addons.mozilla.org/en-US/firefox/addon/sqlite-manager/">SQlite
+        Manager</a>. Note the id column is added automatically.
       </p>
     </div>
 
     <div class="slide">
-      <h1></h1>
+      <h1>The User Class</h1>
 
       <p>
+        So let's look at the Ruby class that represents our User.
       </p>
+
+      <pre>
+  class User < ActiveRecord::Base
+  end      </pre>
+
+      <p>
+        But there's nothing there?! Does it do anything yet? Yes,
+        actually it does. Let's break out the rails console and
+        see. With only that 1 line, we can create users, store them in
+        the database, find them again, edit or get rid of them. Wow!
+      </p>
+
+      <p class="incremental">
+        Sure would be nice if we could see what attributes our User
+        objects have without having to look in the database. 
+      </p>
+
+      <p class="incremental">
+        We can, using the annotate gem. Do the following:
+      </p>
+
+      <pre class="incremental">
+  # Edit your Gemfile 
+  gem "annotate", :group => :development
+  bundle install
+  bundle exec annotate --position before
+  # Now look at your user.rb model file. Much better!      </pre>
     </div>
 
     <div class="slide">
-      <h1></h1>
+      <h1>Validations</h1>
 
       <p>
+        Let's also add some data validations:
       </p>
+      <pre>
+  class User < ActiveRecord::Base
+    attr_accessible :name, :email
+    validates :name, :presence => true
+  end      </pre>
+
+      <p>
+        With that restriction, we get automatic testing of it whenever
+        we try to save the record - and a number of convenience
+        methods such as <code>a_user.valid?</code> and
+        <code>a_user.errors.full_messages</code> 
+      </p>
+
+      <pre>
+# full set of validations we want
+ email_regex = /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i
+
+ validates :name,   :presence => true,
+                    :length   => { :maximum => 50 }
+  validates :email, :presence => true,
+                    :format   => { :with => email_regex },
+		    :uniqueness => { :case_sensitive => false } </pre>
+
+<pre>
+# add unique index on email
+rails generate migration add_email_uniqueness_index
+
+class AddEmailUniquenessIndex < ActiveRecord::Migration
+  def self.up
+    add_index :users, :email, :unique => true
+  end
+
+  def self.down
+    remove_index :users, :email
+  end
+end   </pre>
     </div>
 
     <div class="slide">
-      <h1></h1>
+      <h1>User's home page</h1>
 
       <p>
+        Let's make a page to show what we know about a user. The rails
+        default for such a page is called show:
       </p>
-    </div>
 
-    <div class="slide">
-      <h1></h1>
+      <pre>
+class UsersController < ApplicationController
+  def show
+    @user = User.find(params[:id])
+  end
+...
+end    </pre>
 
       <p>
+        And we should create the file
+        app/views/users/show.html.erb. Hmmm but it still doesn't work
+        because there is no route. Let's add the following - and then
+        use <code>rake routes</code> to see what that did.
       </p>
-    </div>
 
-    <div class="slide">
-      <h1></h1>
-
-      <p>
-      </p>
+      <pre>
+  resources :users  </pre>
     </div>
 
   </body>
