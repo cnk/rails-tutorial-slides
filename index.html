@@ -56,7 +56,7 @@
     </div>
 
     <div class="slide">
-      <h1>Start your server</h1>
+      <h1>Start Your Server</h1>
 
       <pre>
   cd sample_app
@@ -117,7 +117,7 @@
     </div>
 
     <div class="slide">
-      <h1>Static pages</h1>
+      <h1>Static Pages</h1>
 
       <p>
         Any page or file placed within the public/ directory will be
@@ -160,7 +160,6 @@
       </p>
     </div>
 
-
     <div class="slide">
       <h1>Common Layout</h1>
 
@@ -184,8 +183,250 @@
       </p>
 
       <pre>
-  &lt;%= @title %&gt;     </pre>
+  &lt;title&gt;&lt;%= @title %&gt;&lt;/title&gt;     </pre>
+    </div>
 
+    <div class="slide">
+      <h1>A Sliver of Ruby</h1>
+
+      <pre>
+  module ApplicationHelper
+
+    # Return a title on a per-page basis.
+    def title
+      base_title = "Ruby on Rails Tutorial Sample App"
+      if @title.nil?
+	base_title
+      else
+	"#{base_title} | #{@title}"
+      end
+    end
+  end  </pre>
+
+      <ul>
+        <li>How to define methods, variables, and comments</li>
+        <li>if-else-end syntax</li>
+	<li>foo.nil?  (Rails also gives you foo.blank?)</li>
+	<li>String interpolation: "#{variable} plus litteral text"
+	<li>Application Helper methods are available in all views on
+        your site</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>A Bit More Ruby</h1>
+
+      <pre>
+  # Array's 
+  a = [23, 43, "foo", "zombies"]
+  puts a[0] 
+  => 23
+  a.length 
+  => 4
+
+  # Hashes
+  user = { "first_name" => "Michael", "last_name" => "Hartl" }
+  user["last_name"]
+  => "Hartl"
+  user["email"]
+  => nil
+
+  # Hashes with symbols
+  user = { :first_name => "Michael", :last_name => "Hartl" }
+  user[:first_name]
+  => "Hartl"      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Styling with Blueprint CSS</h1>
+
+      <p>
+        Download the latest version of Blueprint CSS from <a
+        href="http://www.blueprintcss.org/">http://www.blueprintcss.org/</a>
+        Unzip or untar it. Then copy the subdirectory "blueprint" into
+        your public/stylesheets/ directory.
+      </p>
+
+      <pre>
+  cd joshuaclayton-blueprint-css-*version number*        
+  cp -r blueprint $RAILS_ROOT/public/stylesheets/   
+  cd $RAILS_ROOT
+  ls public/stylesheets
+  blueprint/ 
+
+  # Edit your application layout file to add the screen and print
+  styles - and take care of a few IE issues:
+  &lt;html&gt;
+    &lt;head&gt;
+      &lt;title&gt;&lt;%= @title %&gt;&lt;/title&gt;
+      &lt;%= csrf_meta_tag %&gt;
+      &lt;!--[if lt IE 9]&gt;
+      &lt;script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+      &lt;![endif]--&gt;    
+      &lt;%= stylesheet_link_tag 'blueprint/screen', :media =&gt; 'screen' %&gt;
+      &lt;%= stylesheet_link_tag 'blueprint/print',  :media =&gt; 'print' %&gt;
+      &lt;!--[if lt IE 8]&gt;&lt;%= stylesheet_link_tag 'blueprint/ie' %&gt;&lt;![endif]--&gt;
+      &lt;%= stylesheet_link_tag 'custom', :media =&gt; 'screen' %&gt;
+    &lt;/head&gt; </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Spicing Up Your Application Layout</h1>
+
+      <p>
+        Let's start by looking at Michael's <a
+        href="http://railstutorial.org/images/figures/home_page_mockup-full.png">wireframe</a>.
+	So, there is going to be a logo at the top - and some standard
+        links in the upper left. Let's put those in. 
+      </p>
+      <p>
+        First, let's copy the logo from <a
+        href="http://railstutorial.org/images/sample_app/logo.png">http://railstutorial.org/images/sample_app/logo.png</a>
+	Place that in your public/images directory. Then use the image
+        tag to put it into your page:
+      </p>
+      <pre>
+<%= image_tag("logo.png", :alt => "Sample App", :class => "round") %>        </pre>
+
+      <p>
+        And add the links at the top of the page:
+      </p>
+      <pre>
+  &lt;nav class="round"&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;%= link_to "Home", '#' %&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;%= link_to "Help", '#' %&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;%= link_to "Sign in", '#' %&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/nav&gt;       </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Routes</h1>
+
+      <p>
+        "Normal" web sites serve pages from subdirectories of the
+        document root. Rails uses this style of url <-> file matching
+        for items under <code>public/</code>. But for the most part
+        urls are matched to controllers using routes configured in
+        <code>config/routes.rb</code>
+      </p>
+      
+      <pre>
+SampleApp::Application.routes.draw do
+  match '/contact', :to => 'pages#contact'
+  match '/about',   :to => 'pages#about'
+  match '/help',    :to => 'pages#help'
+
+  root :to => 'pages#home'
+end  </pre>
+
+     <p>
+       To reference those routes, don't use the url form ('/about')
+       use the helper functions: about_path or about_url.
+     </p>
+
+     <pre>
+&lt;%= link_to "About", about_path %&gt;  </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Partials</h1>
+
+      <p>
+        OK things are starting to look pretty good. We have everything
+        except the footer in place. But have you noticed how
+        complicated the layout file is starting to look? That big
+        block of stylesheet references is a lot of verbage for
+        something so simple. Let's hide that complexity from
+        application.html.erb by putting it in its own file. 
+      </p>
+      
+      <pre>
+  <%= render "layouts/stylesheets" %>      
+  
+  # inserts the html from app/views/layouts/_stylesheets.html.erb   </pre>
+
+      <p>
+        Let's do the same for our header and footer.
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Sign up now!</h1>
+
+      <p>
+        Now for that big green button. Sign up is the same thing as
+        making a new user. Let's make a new controller for users -
+        with an action to create a new user. 
+      </p>
+      
+      <pre>
+  rails generate controller Users new      </pre>
+
+      <p>
+        That doesn't really do anything yet - but it should
+        work. Let's edit the sign up link. But what is the name of the
+        new user route that was added?
+      </p>
+
+      <pre>
+  rake routes
+  users_new GET /users/new(.:format) {:controller=>"users", :action=>"new"}
+    contact     /contact(.:format)   {:controller=>"pages", :action=>"contact"}
+      about     /about(.:format)     {:controller=>"pages", :action=>"about"}
+       help     /help(.:format)      {:controller=>"pages", :action=>"help"}
+       root     /(.:format)          {:controller=>"pages", :action=>"home"}      </pre>
+
+       <p>
+         So we could use users_new_path OR we can add a named route: 
+       </p>
+      <pre>
+  match '/signup', :to => users#new'  </pre>
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+      <p>
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+      <p>
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+      <p>
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+      <p>
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+      <p>
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+      <p>
+      </p>
     </div>
 
   </body>
