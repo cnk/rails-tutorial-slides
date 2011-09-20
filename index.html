@@ -498,9 +498,9 @@ end  </pre>
 
       <pre>
 # full set of validations we want
- email_regex = /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i
+  email_regex = /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i
 
- validates :name,   :presence => true,
+  validates :name,  :presence => true,
                     :length   => { :maximum => 50 }
   validates :email, :presence => true,
                     :format   => { :with => email_regex },
@@ -547,6 +547,373 @@ end    </pre>
       <pre>
   resources :users  </pre>
     </div>
+
+    <div class="slide">
+      <h1>Password Fields</h1>
+
+      <p>
+        So we created some users - but without passwords how do I know
+        you are who you say you are? 
+      </p>
+
+      <p>
+        A password and password confirmation field are pretty standard
+        for most signup forms on the web. But we don't want to store
+        the password confirmation - in fact we don't really want to
+        store the password, at least not the way you typed it in. For
+        security, it should be encrypted. So what we need are some
+        "virtual attributes". (From the point of view of the User
+        class, they are real attributes but from ActiveRecord's
+        perspective, they aren't.)
+      </p>
+
+      <pre>
+attr_accessor :password
+
+# Automatically create the virtual attribute 'password_confirmation'.
+validates :password, :presence     => true,
+                     :confirmation => true,
+                     :length       => { :within => 6..40 }      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Password Migration</h1>
+
+      <p>
+        OK but where are we going to store the password? In a field
+        called encrypted_password. (We'll show you how the password
+        you type in becomes an encrypted password in a minute.)
+      </p>
+
+      <pre>
+rails generate migration add_password_to_users encrypted_password:string      </pre>
+
+      <p>
+        Look at the generated migration file. Impressive, yes? That is
+        rail's "Convention over Configuration" at work.
+      </p>
+
+      <pre>
+class AddPasswordToUsers < ActiveRecord::Migration
+  def self.up
+    add_column :users, :encrypted_password, :string
+  end
+
+  def self.down
+    remove_column :users, :encrypted_password
+  end
+end  </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Saving the Encrypted Password</h1>
+
+      <p>
+        So we have validated our password and password confirmation
+        fields. But how do we store the password into the
+        encrypted_password field? We'll use an ActiveRecord callback
+        to automate this process:
+      </p>
+
+      <pre>
+class User < ActiveRecord::Base
+...
+  before_save :encrypt_password
+
+  private
+
+    def encrypt_password
+      self.encrypted_password = encrypt(password)
+    end
+
+    def encrypt(string)
+      string # Only a temporary implementation!
+    end
+end      </pre>
+  
+      <p>
+        Note the keyword "private" and assignment using self.encrypted_password.
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Checking the Password</h1>
+
+      <p>
+        So ignore for now that we are not really encrypting
+        passwords. How will we check the password you supply on a
+        login form? 
+      </p>
+
+      <pre>
+  # Encrypt the password you just submitted and compare it to the encrypted one
+  def has_password?(submitted_password)
+    encrypted_password == encrypt(submitted_password)
+  end      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Password Encryption</h1>
+
+      <p>
+        The standard way of storing passwords is to use a one-way
+        hash. One way means that you can't deduce the password from
+        knowing the encrypted password. However with enough time, you
+        can compute likely hashes and compare them until you find a
+        match. To make that harder, it is recommended to use a salt -
+        an extra piece of data that gets encrypted with the password.
+      </p>
+
+      <p>
+        So let's start by creating a column for the salt:
+      </p>
+
+      <pre>
+  rails generate migration add_salt_to_users salt:string      </pre>
+      
+      <p>
+        Now for the full encryption functions:
+      </p>
+
+      <pre>
+    def encrypt_password
+      self.salt = make_salt unless has_password?(password)
+      self.encrypted_password = encrypt(password)
+    end
+
+    def encrypt(string)
+      secure_hash("#{salt}--#{string}")
+    end
+
+    def make_salt
+      secure_hash("#{Time.now.utc}--#{password}")
+    end
+
+    def secure_hash(string)
+      Digest::SHA2.hexdigest(string)
+    end      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>User Authentication</h1>
+
+      <p>
+        So to authenticate a user, we need to look up the user record,
+        grab the salt, encrypt the supplied password, and compare it
+        to the one the user just typed in. Not terribly complex - but
+        wouldn't it be nice to have that available as a single action
+        so you don't have to repeat those steps everywhere you want to
+        check on a user? Let's make a method to do that.
+      </p>
+
+      <p>
+        The methods we have created up to this point have been
+        instance methods - they act on a particular user. But we don't
+        have a specific user yet - that's what we are trying to figure
+        out. So we'll need a class method.
+      <p>
+
+      <pre>
+class User < ActiveRecord::Base
+
+  def self.authenticate(email , submitted_password)
+    user = find_by_email(email)
+    return nil  if user.nil?  # no user with that email
+    return user if user.has_password?(submitted_password)
+  end
+end
+
+# To use this:
+@user = User.authenticate(email, password)      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Gravatars</h1>
+
+      <p>
+        Let's spruce up our user display page a bit. Have you seen
+        blog comments where the comment had someone's picture next to
+        it? Fancy, huh? But actually pretty simple because there is a
+        web service you can use to add those images to your pages: <a
+        href="http://en.gravatar.com/">http://en.gravatar.com/</a> 
+      </p>
+
+      <p>
+        A quick look at the <a
+        href="http://en.gravatar.com/site/implement/hash/">Gravatar
+        instructions</a> show it isn't very complicated to use the
+        server. But in the Rails ecosystem it is even easier: there's
+        a gem for that!
+      </p>
+
+      <pre>
+  # Edit your gem file:
+  gem 'gravatar_image_tag'
+
+  bundle install
+
+  # in app/views/users/show.html.erb
+  <%= gravatar_image_tag 'example@railstutorial.org' %>      </pre>
+
+      <p>
+        Also add the user sidebar (section 7.3.3) and augement the stylesheet.
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Signup Form</h1>
+
+      <p>
+        Standard web form behavior is to return error messages next to
+        the field that has the bad data in it - without losing any of
+        the other data you have entered into the form. Doing that by
+        hand is tedious. Rails takes the drudgery out of that with
+        <code>form_for</code> and a handful of form helpers like
+        <code>text_field</code>.
+      </p>
+
+      <pre>
+# app/views/users/new.html.erb
+&lt;h1&gt;Sign up&lt;/h1&gt;
+
+&lt;%= form_for(@user) do |f| %&gt;
+  &lt;div class="field"&gt;
+    &lt;%= f.label :name %&gt;&lt;br /&gt;
+    &lt;%= f.text_field :name %&gt;
+  &lt;/div&gt;
+  &lt;div class="field"&gt;
+    &lt;%= f.label :email %&gt;&lt;br /&gt;
+    &lt;%= f.text_field :email %&gt;
+  &lt;/div&gt;
+  &lt;div class="field"&gt;
+    &lt;%= f.label :password %&gt;&lt;br /&gt;
+    &lt;%= f.password_field :password %&gt;
+  &lt;/div&gt;
+  &lt;div class="field"&gt;
+    &lt;%= f.label :password_confirmation, "Confirmation" %&gt;&lt;br /&gt;
+    &lt;%= f.password_field :password_confirmation %&gt;
+  &lt;/div&gt;
+  &lt;div class="actions"&gt;
+    &lt;%= f.submit "Sign up" %&gt;
+  &lt;/div&gt;
+&lt;% end %&gt;      </pre>
+
+      <pre>
+# app/controllers/users_controller.rb
+  def new
+    @user = User.new  # need this for form_for to act on
+    @title = "Sign up"
+  end  </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Signup Form 2</h1>
+
+      <p>
+        Now let's look at the html generated by form_for and friends:
+      </p>
+      
+      <pre>
+# Form fields. Note the generated name
+&lt;input id="user_name" name="user[name]" - - - /&gt;
+
+# And the form definition itself:
+&lt;form action="/users" class="new_user" id="new_user" method="post"&gt;
+&lt;div style="margin:0;padding:0;display:inline"&gt;
+&lt;input name="authenticity_token" type="hidden"
+       value="rB82sI7Qw5J9J1UMILG/VQL411vH5putR+JwlxLScMQ=" /&gt;
+&lt;/div&gt;      </pre>
+
+      <p>
+        So when we submit the form, where will it end up? Let's check
+        our routes:
+      </p>
+
+      <pre>
+$ rake routes
+    users GET    /users(.:format)          {:action=>"index",  :controller=>"users"}
+          POST   /users(.:format)          {:action=>"create", :controller=>"users"}
+ new_user GET    /users/new(.:format)      {:action=>"new",    :controller=>"users"}
+edit_user GET    /users/:id/edit(.:format) {:action=>"edit",   :controller=>"users"}
+     user GET    /users/:id(.:format)      {:action=>"show",   :controller=>"users"}
+          PUT    /users/:id(.:format)      {:action=>"update", :controller=>"users"}
+          DELETE /users/:id(.:format)      {:action=>"destroy", :controller=>"users"}      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Create a User</h1>
+
+      <pre>
+class UsersController < ApplicationController
+  def create
+    @user = User.new(params[:user])
+    if @user.save
+      redirect_to @user
+    else
+      @title = "Sign up"
+      render 'new'
+    end
+  end
+end  </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Error Handling </h1>
+
+      <p>
+        Recall that ActiveRecord gives you an array of error messages
+        - everything that is wrong with the user you tried to create:
+	<code>a_user.errors.full_messages</code> So how can we show
+        those to the user? 
+      </p>
+
+      <pre>
+# make a partial app/views/shared/_error_messages.html.erb
+&lt;% if @user.errors.any? %&gt;
+  &lt;div id="error_explanation"&gt;
+    &lt;h2&gt;&lt;%= pluralize(@user.errors.count, "error") %&gt; 
+        prohibited this user from being saved:&lt;/h2&gt;
+    &lt;p&gt;There were problems with the following fields:&lt;/p&gt;
+    &lt;ul&gt;
+    &lt;% @user.errors.full_messages.each do |msg| %&gt;
+      &lt;li&gt;&lt;%= msg %&gt;&lt;/li&gt;
+    &lt;% end %&gt;
+    &lt;/ul&gt;
+  &lt;/div&gt;
+&lt;% end %&gt;      </pre>
+      
+      <p>
+        Ruby goodness: .any?, .each do |msg| end. Rails goodness: pluralize
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Flash Notices</h1>
+
+      <p>
+        When user creation succeeds, the user gets redirected to their
+        user page. But perhaps we would like to set a temporary
+        message on that first page view. For example: "Welcome! You
+        can now start posting!" Rails provides a way to add a
+        temporary message for the very next page view - called the flash.
+      </p>
+
+      <pre>
+# To create them:
+  # In app/controllers/users_controller.rb
+  flash[:success] = "Welcome to the Sample App!"
+      </pre>
+
+      <pre>
+# To display them
+  # In app/views/layouts/application.html.erb
+  &lt;% flash.each do |key, value| %&gt;
+    &lt;div class="flash &lt;%= key %&gt;"&gt;&lt;%= value %&gt;&lt;/div&gt;
+  &lt;% end %&gt;      </pre>
+    </div>
+
 
   </body>
 </html>
