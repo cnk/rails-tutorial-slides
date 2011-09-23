@@ -914,6 +914,204 @@ end  </pre>
   &lt;% end %&gt;      </pre>
     </div>
 
+    <div class="slide">
+      <h1>User Sessions</h1>
+
+      <p>
+        You can look at being logged in or not as an attribute of the
+        user. But Rails prefers to think of logging in as "creating a
+        new session" and logging out as "destroying a session". So the
+        usual way to implement user log-ins in Rails is to create a
+        Session controller. 
+      </p>
+
+      <pre>
+  rails generate controller Sessions new      </pre>
+
+      <p>
+        We will also need actions for create and destroy - but they
+        won't need views, so we'll just add them by hand later. We
+        will need some routes - and will probably want them to have
+        pretty names.
+      </p>
+
+      <pre>
+SampleApp::Application.routes.draw do
+  resources :users
+  resources :sessions, :only => [:new, :create, :destroy]
+
+  match '/signup',  :to => 'users#new'
+  match '/signin',  :to => 'sessions#new'
+  match '/signout', :to => 'sessions#destroy'
+...      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Sign In Form</h1>
+
+      <p>
+        So to sign in, we'll need a form that is similar to our signup
+        form - except we'll only need email and password. The other
+        main difference is that we don't have a database model for the
+        session (it's data is stored in a session cookie on your
+        browser). So we'll need to use form_for a little differently:
+      </p>
+
+      <pre>
+  # instead of 
+  form_for(@user)
+
+  # we need to tell form_for the name of the resource and a target url
+  form_for(:session, :url => sessions_path)          </pre>
+
+      <pre>
+# app/views/sessions/new.html.erb
+&lt;h1&gt;Sign in&lt;/h1&gt;
+
+&lt;%= form_for(:session, :url =&gt; sessions_path) do |f| %&gt;
+  &lt;div class="field"&gt;
+    &lt;%= f.label :email %&gt;&lt;br /&gt;
+    &lt;%= f.text_field :email %&gt;
+  &lt;/div&gt;
+  &lt;div class="field"&gt;
+    &lt;%= f.label :password %&gt;&lt;br /&gt;
+    &lt;%= f.password_field :password %&gt;
+  &lt;/div&gt;
+  &lt;div class="actions"&gt;
+    &lt;%= f.submit "Sign in" %&gt;
+  &lt;/div&gt;
+&lt;% end %&gt;
+
+&lt;p&gt;New user? &lt;%= link_to "Sign up now!", signup_path %&gt;&lt;/p&gt;      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Sign In Form 2</h1>
+
+      <p class="incremental">
+        So what is the usual logic for form submission?
+      </p>
+
+      <p class="incremental">
+        We saw how to implement that with form_for and an ActiveRecord
+        model (validations, error reporting, etc.). So how do we do
+        that with our session form? 
+      </p>
+
+      <p class="incremental">
+        We use our User.authenticate action
+      </p>
+      
+      <pre class="incremental">
+  def create
+    user = User.authenticate(params[:session][:email],
+                             params[:session][:password])
+    if user.nil?
+      # Create error messages and rerender new
+      flash.now[:error] = "Invalid email/password combination."
+      @title = "Sign in"
+      render 'new'
+    else
+      # set session cookie and redirect user to his own page
+    end
+ end      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Session Cookies</h1>
+
+      <p>
+        The most common way of keeping track of user sessions is to
+        use browser cookies. Rails has machinery for creating
+        encrypted cookies and allowing you to easily store data in and
+        retrieve data from the cookie. We are going to reuse the salt
+        we created to encrypt each user's password to encrypt their
+        user id before storing it in a cookie named "remember_token".
+      </p>
+
+      <pre>
+  def sign_in(user)
+    cookies.permanent.signed[:remember_token] = [user.id, user.salt]
+    self.current_user = user
+  end      </pre>
+
+      <p>
+        For more details on security threats and how to use Rails to
+        counter them, see the <a
+        href="http://guides.rubyonrails.org/security.html">Rails
+        Security Guide</a>.
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Session Cookies 2</h1>
+
+      <p>
+        But where does the code above go? We will need it in our
+        controllers and in our views. Views already load all helper
+        methods - and we can easily load the SessionHelper module in
+        our application controller. 
+      </p>
+
+      <pre>
+module SessionsHelper
+  def sign_in(user)
+    cookies.permanent.signed[:remember_token] = [user.id, user.salt]
+    self.current_user = user
+  end
+end 
+
+class ApplicationController &lt; ActionController::Base
+  protect_from_forgery
+  include SessionsHelper
+end      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Current User</h1>
+
+      <p class="incremental">
+        In the previous step, we created a current_user attribute in
+        the session. Or did we? We haven't created a setter method for
+        current_user. There isn't an attr_write nor an current_user=
+        method. We better create one - and create a getter method
+        while we are at it. 
+      </p>
+
+      <pre class="incremental">
+  def current_user=(user)
+    @current_user = user
+  end </pre>
+
+      <p class="incremental">
+        You might think we coudl just create a getter that returns
+        @current_user. However, since that is an instance variable,
+        you would get a different instance for every page request. Not
+        very helpful if you are trying to preserve state across
+        multiple page requests.
+      </p>
+
+      <pre class="incremental">
+  def current_user
+    @current_user ||= user_from_remember_token
+  end
+
+  private
+
+    def user_from_remember_token
+      User.authenticate_with_salt(*remember_token)
+    end
+
+    def remember_token
+      cookies.signed[:remember_token] || [nil, nil]
+    end
+
+      </pre>
+    </div>
+
 
   </body>
 </html>
