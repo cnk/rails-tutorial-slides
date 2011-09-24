@@ -1404,7 +1404,7 @@ def edit
 end
 
 def edit
-  # @user defined implicitly from @current_user
+  # correct_user filter now sets @user 
   @title = "Edit user"
 end
       </pre>
@@ -1412,7 +1412,54 @@ end
     </div>
 
     <div class="slide">
-      <h1></h1>
+      <h1>Better Page Flow</h1>
+
+      <p>
+        OK our edit function is now secure. But it is kind of
+        annoying. If the user gets redirected to the sign in page, she
+        ends up on her profile display page - even if she had been in
+        the middle of trying to edit the profile. That isn't the
+        behavior you expect - you want to go right back to editing,
+        right?
+     </p> 
+
+     <p>
+       Remember that phrase about "HTTP is a stateless protocol"? So
+       if we want to go "back where we started" then we'll need to
+       store that information explicitly. Fortunately, Rails has a
+       session cookie just for stuff like this.
+     </p>
+
+     <pre>
+module SessionsHelper
+  ...
+  def deny_access
+    store_location
+    redirect_to signin_path, :notice => "Please sign in to access this
+  page."
+  end
+
+  def redirect_back_or(default)
+    redirect_to(session[:return_to] || default)
+    clear_return_to
+  end
+
+  private
+    ...
+    def store_location
+      session[:return_to] = request.fullpath
+    end
+
+    def clear_return_to
+      session[:return_to] = nil
+    end
+end      </pre>
+
+     <pre>
+  # and change the last line of SessionsController#create from
+  # redirect_to user
+  redirect_back_or user
+     </pre>
 
     </div>
 
