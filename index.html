@@ -1026,9 +1026,11 @@ SampleApp::Application.routes.draw do
         The most common way of keeping track of user sessions is to
         use browser cookies. Rails has machinery for creating
         encrypted cookies and allowing you to easily store data in and
-        retrieve data from the cookie. We are going to reuse the salt
-        we created to encrypt each user's password to encrypt their
-        user id before storing it in a cookie named "remember_token".
+        retrieve data from the cookie. We don't want everyone to be
+        able to read that user_id so we are going to encrypt it. We
+        will reuse the salt we created to encrypt each user's
+        password to encrypt their user id before storing it in a
+        cookie named "remember_token".
       </p>
 
       <pre>
@@ -1049,10 +1051,12 @@ SampleApp::Application.routes.draw do
       <h1>Session Cookies 2</h1>
 
       <p>
-        But where does the code above go? We will need it in our
-        controllers and in our views. Views already load all helper
-        methods - and we can easily load the SessionHelper module in
-        our application controller. 
+        But where does the code above go? We will need to know if you
+        are logged in or not in our controllers and in our
+        views. Views already load all helper methods - and we can
+        easily load the SessionHelper module in our application
+        controller. So let's put our sign_in code and its auxillary
+        functions in to the SessionsHelper module.
       </p>
 
       <pre>
@@ -1060,6 +1064,11 @@ module SessionsHelper
   def sign_in(user)
     cookies.permanent.signed[:remember_token] = [user.id, user.salt]
     self.current_user = user
+  end
+
+  # and a a nice method for checking if the person viewing this page is signed in
+  def signed_in?
+    !current_user.nil?
   end
 end 
 
@@ -1071,14 +1080,28 @@ end      </pre>
     </div>
 
     <div class="slide">
-      <h1>Current User</h1>
+      <h1>Setting the Current User</h1>
 
-      <p class="incremental">
+      <p>
         In the previous step, we created a current_user attribute in
         the session. Or did we? We haven't created a setter method for
         current_user. There isn't an attr_write nor an current_user=
-        method. We better create one - and create a getter method
-        while we are at it. 
+        method. If you try to sign in right now, you will get a stack trace:
+      </p>
+
+      <pre class="incremental">
+NoMethodError in SessionsController#create
+
+undefined method `current_user=' for #&lt;SessionsController:0xb1d8d40&gt;
+
+app/helpers/sessions_helper.rb:5:in `sign_in'
+app/controllers/sessions_controller.rb:16:in `create' </pre>
+
+
+      <p class="incremental">
+	We better create methods for setting and retrieving the
+        current user from the session. NB @current_user is an instance
+        variable of the current session.
       </p>
 
       <pre class="incremental">
@@ -1086,15 +1109,20 @@ end      </pre>
     @current_user = user
   end </pre>
 
-      <p class="incremental">
-        You might think we coudl just create a getter that returns
+    </div>
+
+    <div class="slide">
+      <h1>Using the Current User Variable</h1>
+
+      <p>
+        You might think we could just create a getter that returns
         @current_user. However, since that is an instance variable,
         you would get a different instance for every page request. Not
         very helpful if you are trying to preserve state across
         multiple page requests.
       </p>
 
-      <pre class="incremental">
+      <pre>
   def current_user
     @current_user ||= user_from_remember_token
   end
@@ -1107,8 +1135,124 @@ end      </pre>
 
     def remember_token
       cookies.signed[:remember_token] || [nil, nil]
-    end
+    end      </pre>
 
+      <p>
+	Note a couple of Ruby tricks: ||= and the splat operator *array
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Authenticating Users with ID and Salt</h1>
+
+      <pre>
+class User < ActiveRecord::Base
+...
+  def self.authenticate(email, submitted_password)
+    user = find_by_email(email)
+    return nil  if user.nil?
+    return user if user.has_password?(submitted_password)
+  end
+
+  def self.authenticate_with_salt(id, cookie_salt)
+    user = find_by_id(id)
+    (user && user.salt == cookie_salt) ? user : nil
+  end
+end      </pre>
+
+      <p>
+	The two methods above have the exact same logic - but the
+	second one is written using the ternary operator. If you have
+	seen it before, feel free to use it. Otherwise, it is also OK
+	to use the longer, more explicit form of the first method.
+      </p>
+    </div>
+
+    <div class="slide">
+      <h1>Signing Out</h1>
+
+      <p>
+	So signing out is the same thing as "destroying" the
+	session. Essentially we need to clear out the remember_token
+	cookie and the @current_user variable. And then take the user ??? 
+      </p>
+      
+      <pre>
+class SessionsController &lt; ApplicationController
+
+ def destroy
+    sign_out
+    redirect_to root_path
+  end
+end      </pre>
+
+      <pre>
+module SessionsHelper
+
+  def sign_out
+    cookies.delete(:remember_token)
+    self.current_user = nil
+  end
+end      </pre>
+      
+    </div>
+
+    <div class="slide">
+      <h1>Signing In When Signing Up</h1>
+
+      <p>
+	Now that we can sign people in, we should probably do that
+	automatically when someone signs up. So let's modify our
+	User#create action to do that.
+      </p>
+
+      <pre>
+class UsersController < ApplicationController
+
+  def create
+    @user = User.new(params[:user])
+    if @user.save
+      sign_in @user
+      flash[:success] = "Welcome to the Sample App!"
+      redirect_to @user
+    else
+      @title = "Sign up"
+      render 'new'
+    end
+  end
+end      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Tweaking Our Layout</h1>
+
+      <p>
+	It is customary to have the sign in link change to a sign out
+	link once a user signs in. We had better provide a sign out
+	link to our users - especially as we use permanent cookies for
+	this app. We will probably also want users to be able to get
+	back to their own page at any time while they are signed in.
+      </p>
+
+      <pre>
+&lt;header&gt;
+  &lt;%= image_tag("logo.png", :alt => "Sample App", :class => "round") %&gt;
+  &lt;nav class="round"&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;%= link_to "Home", root_path %&gt;&lt;/li&gt;
+      &lt;% if signed_in? %&gt;
+          &lt;li&gt;&lt;%= link_to "Profile", current_user %&gt;&lt;/li&gt;
+      &lt;% end %&gt;
+      &lt;li&gt;&lt;%= link_to "Help", help_path %&gt;&lt;/li&gt;
+      &lt;% if signed_in? %&gt;
+          &lt;li&gt;&lt;%= link_to "Sign out", signout_path, :method =&gt; :delete %&gt;&lt;/li&gt;
+      &lt;% else %&gt;
+          &lt;li&gt;&lt;%= link_to "Sign in", signin_path %&gt;&lt;/li&gt;
+      &lt;% end %&gt;
+    &lt;/ul&gt;
+  &lt;/nav&gt;
+&lt;/header&gt;
       </pre>
     </div>
 
