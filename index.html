@@ -918,11 +918,11 @@ end  </pre>
       <h1>User Sessions</h1>
 
       <p>
-        You can look at being logged in or not as an attribute of the
-        user. But Rails prefers to think of logging in as "creating a
-        new session" and logging out as "destroying a session". So the
-        usual way to implement user log-ins in Rails is to create a
-        Session controller. 
+        You can look at being signed in or not as an attribute of the
+        user. But Rails prefers to think of signing in as "creating a
+        new session" and signing out as "destroying a session". So the
+        usual way to implement user sign ins in Rails is to create a
+        Session controller.
       </p>
 
       <pre>
@@ -1052,7 +1052,7 @@ SampleApp::Application.routes.draw do
 
       <p>
         But where does the code above go? We will need to know if you
-        are logged in or not in our controllers and in our
+        are signed in or not in our controllers and in our
         views. Views already load all helper methods - and we can
         easily load the SessionHelper module in our application
         controller. So let's put our sign_in code and its auxillary
@@ -1287,7 +1287,7 @@ end      </pre>
 
       <p>
 	Now, let's make it possible to get to the edit page by adding
-	a "Settings" link when you are logged in:
+	a "Settings" link when you are signed in:
       </p>
 
       <pre>
@@ -1464,8 +1464,55 @@ end      </pre>
     </div>
 
     <div class="slide">
-      <h1></h1>
+      <h1>Making It Social</h1>
 
+      <p>
+        So far we have built the user infrastructure that 90% of web
+        sites need these days. But our "social media" Twitter clone
+        is, so far, pretty anti-social. There isn't any way to see
+        other users of the site. Let's fix that. Let's create a page
+        listing all the users. In Rails/REST convention, that page is
+        called the index page and should be at the "/users" url. We
+        only want other signed in users to see that list, so let's add
+        index to the list of restricted pages. 
+      </p>
+
+      <pre>
+class UsersController < ApplicationController
+  before_filter :authenticate, :only => [:index, :edit, :update]
+  ...
+  def index
+    @title = "All users"
+    @users = User.all
+  end      </pre>
+
+      <pre>
+# app/views/users/index.html.erb
+&lt;h1&gt;All users&lt;/h1&gt;
+
+&lt;ul class="users"&gt;
+  &lt;% @users.each do |user| %&gt;
+    &lt;li&gt;
+      &lt;%= gravatar_for user, :size =&gt; 30 %&gt;
+      &lt;%= link_to user.name, user %&gt;
+    &lt;/li&gt;
+  &lt;% end %&gt;
+&lt;/ul&gt;      </pre>
+
+      <pre>
+  # and add a link to Users in the navigation - if you are signed in
+      &lt;li&gt;&lt;%= link_to "Users", users_path %&gt;&lt;/li&lt;
+</pre>
+
+      <p>
+        Section 10.3.3 shows you an extremely convenient Rails
+        extension to easily split the user list (or any other list)
+        onto multiple pages using the will-paginate gem. We are going
+        to skip this, but take a look at <a
+        href="http://ruby.railstutorial.org/chapters/updating-showing-and-deleting-users#sec:pagination">the
+        book</a> when you have time.
+      </p>
+      
     </div>
 
   </body>
