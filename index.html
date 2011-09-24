@@ -1256,6 +1256,170 @@ end      </pre>
       </pre>
     </div>
 
+    <div class="slide">
+      <h1>Editing User Information</h1>
+
+      <p>
+	But what if my email address changes? Let's add an edit action.
+      </p>
+
+      <pre>
+  def edit
+    @user = User.find(params[:id])
+    @title = "Edit user"
+  end      </pre>
+
+      <p>
+	The edit form needs to look a lot like the sign up form. Can't
+	we just reuse it? Let's refactor it so we can. First, remove
+	the form contents from new.html.erb and put them in a file
+	called _form.html.erb. And reinclude them as below:
+      </p>
+
+      <pre>
+  <%= render :partial => 'form', :locals => { :f => f } %>      </pre>
+
+
+      <p>
+	Then you can copy new.html.erb into edit.html.erb and modify
+	as need be.
+      </p>
+
+      <p>
+	Now, let's make it possible to get to the edit page by adding
+	a "Settings" link when you are logged in:
+      </p>
+
+      <pre>
+      &lt;% if signed_in? %&gt;
+          &lt;li&gt;&lt;%= link_to "Profile", current_user %&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;%= link_to "Settings", edit_user_path(current_user) %&gt;&lt;/li&gt;
+      &lt;% end %&gt;      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Update User Info</h1>
+
+      <p>
+	By now you are kind of getting the hang of page flow. We'll
+	need an action to receive the form information, validate it,
+	and return errors or redirect back to the profile page. By
+	convention Rails calls this action "update".
+      </p>
+
+      <pre>
+  def update
+    @user = User.find(params[:id])
+    if @user.update_attributes(params[:user])
+      flash[:success] = "Profile updated."
+      redirect_to @user
+    else
+      @title = "Edit user"
+      render 'edit'
+    end
+  end      </pre>
+    </div>
+
+    <div class="slide">
+      <h1>Protecting pages</h1>
+
+      <p>
+	Pretty nifty, huh? The update_attributes function is the bee's
+	knees. But at the moment, any and everyone can edit your
+	profile information. Hmmm perhaps we should restrict that so
+	that you can only edit your own profile.
+      </p>
+
+      <pre class="incremental">
+class UsersController < ApplicationController
+  before_filter :authenticate, :only => [:edit, :update]
+  ...
+  private
+
+    def authenticate
+      deny_access unless signed_in?
+    end
+end      </pre>
+
+      <pre class="incremental">
+module SessionsHelper
+  ...
+  def deny_access
+    redirect_to signin_path, :notice => "Please sign in to access this page."
+  end
+end      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Protecting pages 2</h1>
+
+      <p>
+	The previous code made is so only signed in users can edit
+	profiles - but it still didn't mean you couldn't edit someone
+	else's profile. Let's add another filter for that:
+      </p>
+
+      <pre class="incremental">
+class UsersController < ApplicationController
+  before_filter :authenticate, :only => [:edit, :update]
+  before_filter :correct_user, :only => [:edit, :update]
+  ....
+  private
+
+    def authenticate
+      deny_access unless signed_in?
+    end
+
+    def correct_user
+      @user = User.find(params[:id])
+      redirect_to(root_path) unless current_user?(@user)
+    end
+end      </pre>
+
+      <pre class="incremental">
+module SessionsHelper
+  ...
+
+  def current_user?(user)
+    user == current_user
+  end
+
+  def deny_access
+    redirect_to signin_path, :notice => "Please sign in to access this page."
+  end
+end      </pre>
+
+      <p class="incremental">
+	And now that we are only allowing the current user to edit, we
+	don't need to look up the user from params[:id], we can just
+	use the current_user. So the edit action changes as follows:
+      </p>
+
+      <pre class="incremental">
+def edit
+  @user = User.find(params[:id])
+  @title = "Edit user"
+end
+
+def edit
+  # @user defined implicitly from @current_user
+  @title = "Edit user"
+end
+      </pre>
+
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+    </div>
+
+    <div class="slide">
+      <h1></h1>
+
+    </div>
 
   </body>
 </html>
